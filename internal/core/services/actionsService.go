@@ -9,7 +9,6 @@ import (
 	"kororo/internal/core/domain/models"
 	"kororo/internal/core/domain/types"
 	"kororo/internal/core/ports"
-	"log"
 	"net/http"
 	"os/exec"
 	"strings"
@@ -60,7 +59,7 @@ func (s *actionService) processHttp(_ context.Context, action *models.Action, ac
 
 	if method == "POST" {
 		action.Http.Body = replacer.Replace(action.Http.Body)
-		log.Println("Body: ", action.Http.Body)
+		//log.Println("Body: ", action.Http.Body)
 		respHttp, err = http.Post(url, "application/json", strings.NewReader(action.Http.Body))
 	}
 
@@ -78,7 +77,7 @@ func (s *actionService) processHttp(_ context.Context, action *models.Action, ac
 	var mapResponse = make(map[string]interface{})
 	json.Unmarshal(body, &mapResponse)
 
-	log.Println("MapResponse: ", mapResponse)
+	//log.Println("MapResponse: ", mapResponse)
 
 	if action.Http.CheckLLMResponsePrompt != "" {
 
