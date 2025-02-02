@@ -120,6 +120,9 @@ func (s *FieldDetectorService) DetectFields(intention *models.Intention, text st
 		return nil, err
 	}
 
+	response = strings.Replace(response, "```json", "", -1)
+	response = strings.Replace(response, "```", "", -1)
+
 	var iaResponse IAResponse
 	err = json.Unmarshal([]byte(response), &iaResponse)
 	if err != nil {

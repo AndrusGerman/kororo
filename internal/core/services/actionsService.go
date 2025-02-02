@@ -4,10 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"kororo/internal/core/domain"
 	"kororo/internal/core/domain/models"
 	"kororo/internal/core/domain/types"
 	"kororo/internal/core/ports"
+	"net/http"
 	"os/exec"
 	"strings"
 )
@@ -35,15 +37,70 @@ func (s *actionService) ProcessAction(ctx context.Context, action *models.Action
 		return s.processCommand(ctx, action, actionContext)
 	}
 
+	if action.ActionProccessType == types.ActionProccessTypeRequestHttp {
+		return s.processHttp(ctx, action, actionContext)
+	}
+
 	return nil, domain.ErrActionTypeNotSupported
 }
 
-func (s *actionService) processCommand(_ context.Context, action *models.Action, actionContext *models.ActionPipelineContext) (*models.ActionResponse, error) {
-	command := action.Command.Command
+func (s *actionService) processHttp(_ context.Context, action *models.Action, actionContext *models.ActionPipelineContext) (*models.ActionResponse, error) {
 
+	replacer, err := s.replacer(actionContext, action)
+	if err != nil {
+		return nil, err
+	}
+	var respHttp *http.Response
+	var method = strings.ToUpper(action.Http.Method)
+	var url = replacer.Replace(action.Http.Url)
+	if method == "GET" {
+		respHttp, err = http.Get(url)
+	}
+
+	if method == "POST" {
+		respHttp, err = http.Post(url, "application/json", strings.NewReader(action.Http.Body))
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer respHttp.Body.Close()
+
+	body, err := io.ReadAll(respHttp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	if action.Http.CheckLLMResponsePrompt != "" {
+
+	}
+
+	var response = &models.ActionResponse{
+		ActionId: types.Id(action.Id),
+		Status:   "success",
+		Response: string(body),
+		ResponseFields: []*models.ActionsResponseFields{
+			{
+				Name:  action.Http.HttpValueNameResponse,
+				Value: string(body),
+			},
+		},
+	}
+
+	return response, nil
+}
+
+func (s *actionService) processCommand(_ context.Context, action *models.Action, actionContext *models.ActionPipelineContext) (*models.ActionResponse, error) {
+	replacer, err := s.replacer(actionContext, action)
+	if err != nil {
+		return nil, err
+	}
+
+	command := replacer.Replace(action.Command.Command)
 	cmd := exec.Command("cmd", "/c", command)
 
-	var output, err = cmd.Output()
+	output, err := cmd.Output()
 	if err != nil {
 		return nil, err
 	}
@@ -55,8 +112,7 @@ func (s *actionService) processCommand(_ context.Context, action *models.Action,
 	}, nil
 }
 
-func (s *actionService) processLLMResponse(_ context.Context, action *models.Action, actionContext *models.ActionPipelineContext) (*models.ActionResponse, error) {
-
+func (s *actionService) replacer(actionContext *models.ActionPipelineContext, action *models.Action) (*strings.Replacer, error) {
 	var replacesValues []string
 
 	for _, field := range action.Fields {
@@ -73,7 +129,17 @@ func (s *actionService) processLLMResponse(_ context.Context, action *models.Act
 		replacesValues = append(replacesValues, "${beforePipeRaw}", lastResponse.Response)
 	}
 
-	replacer := strings.NewReplacer(replacesValues...)
+	replacesValues = append(replacesValues, "${userPrompt}", actionContext.GetUserPrompt())
+
+	return strings.NewReplacer(replacesValues...), nil
+}
+func (s *actionService) processLLMResponse(_ context.Context, action *models.Action, actionContext *models.ActionPipelineContext) (*models.ActionResponse, error) {
+
+	replacer, err := s.replacer(actionContext, action)
+	if err != nil {
+		return nil, err
+	}
+
 	prompt := replacer.Replace(action.ProcessLLMSystemPrompt)
 
 	var systemPrompt = `Eres una asistente de IA encargada de responder exactamente con la acciones que te pide el usuario en su prompt`
@@ -121,6 +187,11 @@ func (s *actionService) processLLMResponse(_ context.Context, action *models.Act
 
 func (s *actionService) processPipeline(ctx context.Context, response string) ([]*models.ActionsResponseFields, error) {
 	var responseFields []*models.ActionsResponseFields
-	json.Unmarshal([]byte(response), &responseFields)
-	return responseFields, nil
+
+	response = strings.Replace(response, "```json", "", -1)
+	response = strings.Replace(response, "```", "", -1)
+
+	var err = json.Unmarshal([]byte(response), &responseFields)
+
+	return responseFields, err
 }

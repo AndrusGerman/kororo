@@ -16,8 +16,17 @@ type Action struct {
 	ResponseType           types.ActionResponseType `bson:"response_type" json:"response_type"`
 
 	Command *ActionCommand `bson:"command" json:"command"`
+	Http    *ActionHttp    `bson:"http" json:"http"`
 }
 
 type ActionCommand struct {
 	Command string `bson:"command" json:"command"`
+}
+
+type ActionHttp struct {
+	Url                    string `bson:"url" json:"url"`
+	Method                 string `bson:"method" json:"method"`
+	Body                   string `bson:"body" json:"body"`
+	HttpValueNameResponse  string `bson:"http_value_name_response" json:"http_value_name_response"`
+	CheckLLMResponsePrompt string `bson:"check_llm_response_prompt" json:"check_llm_response_prompt"`
 }

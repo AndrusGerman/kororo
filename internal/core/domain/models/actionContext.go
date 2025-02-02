@@ -8,6 +8,7 @@ import (
 type ActionPipelineContext struct {
 	actionsResponses []*ActionResponse
 	fieldValues      []FieldValue
+	userPrompt       string
 }
 
 func (s *ActionPipelineContext) GetField(field *ActionField) (string, error) {
@@ -56,10 +57,15 @@ func (s *ActionPipelineContext) GetAllActionResponses() []*ActionResponse {
 	return s.actionsResponses
 }
 
-func NewActionPipelineContext(fieldValues []FieldValue) *ActionPipelineContext {
+func NewActionPipelineContext(fieldValues []FieldValue, userPrompt string) *ActionPipelineContext {
 	return &ActionPipelineContext{
 		fieldValues: fieldValues,
+		userPrompt:  userPrompt,
 	}
+}
+
+func (s *ActionPipelineContext) GetUserPrompt() string {
+	return s.userPrompt
 }
 
 func (s *ActionPipelineContext) AddActionResponse(actionResponse *ActionResponse) {

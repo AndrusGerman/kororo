@@ -1,11 +1,12 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"errors"
 	"fmt"
 	"kororo/internal/adapters/config"
-	"kororo/internal/adapters/llm/ollama"
+	"kororo/internal/adapters/llm/gemini"
 	"kororo/internal/adapters/rest"
 	mongodb "kororo/internal/adapters/storage/mongo"
 	"kororo/internal/adapters/storage/mongo/repository"
@@ -15,6 +16,7 @@ import (
 	"kororo/internal/core/ports"
 	"kororo/internal/core/services"
 	"log"
+	"os"
 	"strings"
 )
 
@@ -30,29 +32,31 @@ func main() {
 	}
 
 	var restAdapter = rest.New()
-	var llmAdapter = ollama.New(restAdapter)
 
+	llmAdapter, err := gemini.New(restAdapter, config)
+	if err != nil {
+		panic(err)
+	}
+	// intention
 	var intentionRepository = repository.NewIntentionRepository(mongo)
 	var intentionService = services.NewIntentionService(intentionRepository, llmAdapter)
 
+	// action
 	var actionRepository = repository.NewActionRepository(mongo)
 	var actionService = services.NewActionService(actionRepository, llmAdapter)
 
-	//return
+	// field detector
 	var fieldDetectorService = services.NewFieldDetectorService(llmAdapter)
 
-	//processIntention("Detecta los latidos de mi amigo", intentionService, fieldDetectorService, actionService)
+	// Intenciones:
+	var reader = bufio.NewReader(os.Stdin)
+	for {
+		fmt.Println("Ingrese una intencion: ")
+		text, _ := reader.ReadString('\n')
+		text = strings.TrimSpace(text)
+		processIntention(text, intentionService, fieldDetectorService, actionService)
+	}
 
-	processIntention("En mi lista de procesos, cual es el navegador que se esta ejecutando?", intentionService, fieldDetectorService, actionService)
-
-	processIntention("En mi lista de procesos, cual aplicacion de contenedores se esta ejecutando?", intentionService, fieldDetectorService, actionService)
-
-	//processIntention("Quiero saludar a mi amigo, el es manuel", intentionService, fieldDetectorService, actionService)
-	//processIntention("Quiero saludar a Jhon", intentionService, fieldDetectorService, actionService)
-	//processIntention("Quiero ordenar un libro harry potter", intentionService, fieldDetectorService, actionService)
-	//processIntention("Voy a comprar un libro llamado el señor de los anillos", intentionService, fieldDetectorService, actionService)
-	//processIntention("Quiero enviar 2$ a mi amigo luis", intentionService, fieldDetectorService, actionService)
-	//
 }
 
 func processIntention(text string, intentionService ports.IntentionService, fieldDetectorService ports.FieldDetectorService, actionService ports.ActionService) {
@@ -89,7 +93,7 @@ func processIntention(text string, intentionService ports.IntentionService, fiel
 		fmt.Printf("El campo '%s' tiene el valor '%s'\n", fieldValue.Field.Description, fieldValue.Value)
 	}
 
-	var actionPipelineContext = models.NewActionPipelineContext(fieldsValue)
+	var actionPipelineContext = models.NewActionPipelineContext(fieldsValue, text)
 
 	for _, actionId := range intention.Actions {
 		action, err := actionService.GetAction(context.TODO(), types.Id(actionId))
@@ -107,9 +111,9 @@ func processIntention(text string, intentionService ports.IntentionService, fiel
 
 		actionPipelineContext.AddActionResponse(actionResponse)
 
-		if action.ActionProccessType != types.ActionProccessTypeCommand {
-			fmt.Println("----Respuesta de la accion: ", actionResponse.Response)
-		}
+		//if action.ActionProccessType != types.ActionProccessTypeCommand {
+		//fmt.Println("----Respuesta de la accion: ", actionResponse.Response)
+		//}
 	}
 
 	// respuesta final
@@ -126,5 +130,21 @@ func processIntention(text string, intentionService ports.IntentionService, fiel
 		return
 	}
 
-	fmt.Println("Respuesta final: ", responseActionResponse.Response)
+	fmt.Println("== RESPUESTA ==\n", responseActionResponse.Response)
 }
+
+//processIntention("Ejecuta chrome", intentionService, fieldDetectorService, actionService)
+//processIntention("Ejecuta explorer", intentionService, fieldDetectorService, actionService)
+//processIntention("Que hora es?", intentionService, fieldDetectorService, actionService)
+//processIntention("Que fecha es?", intentionService, fieldDetectorService, actionService)
+
+//processIntention("Detecta los latidos de mi amigo", intentionService, fieldDetectorService, actionService)
+//processIntention("Busca en mi lista de procesos, cual es el navegador que se esta ejecutando?", intentionService, fieldDetectorService, actionService)
+//processIntention("Busca en mi lista de procesos, cual aplicacion de contenedores se esta ejecutando?", intentionService, fieldDetectorService, actionService)
+
+//processIntention("Quiero saludar a mi amigo, el es manuel", intentionService, fieldDetectorService, actionService)
+//processIntention("Quiero saludar a Jhon", intentionService, fieldDetectorService, actionService)
+//processIntention("Quiero ordenar un libro harry potter", intentionService, fieldDetectorService, actionService)
+//processIntention("Voy a comprar un libro llamado el señor de los anillos", intentionService, fieldDetectorService, actionService)
+//processIntention("Quiero enviar 2$ a mi amigo luis", intentionService, fieldDetectorService, actionService)
+//
