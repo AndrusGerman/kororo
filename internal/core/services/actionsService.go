@@ -1,6 +1,7 @@
 package services
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -58,9 +59,18 @@ func (s *actionService) processHttp(_ context.Context, action *models.Action, ac
 	}
 
 	if method == "POST" {
-		action.Http.Body = replacer.Replace(action.Http.Body)
-		//log.Println("Body: ", action.Http.Body)
-		respHttp, err = http.Post(url, "application/json", strings.NewReader(action.Http.Body))
+
+		for index := range action.Http.Body {
+			action.Http.Body[index] = replacer.Replace(action.Http.Body[index])
+		}
+
+		jsonBody, err := json.Marshal(action.Http.Body)
+		if err != nil {
+			return nil, err
+		}
+
+		respHttp, err = http.Post(url, "application/json", bytes.NewReader(jsonBody))
+
 	}
 
 	if err != nil {

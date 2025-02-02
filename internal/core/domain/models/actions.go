@@ -26,7 +26,7 @@ type ActionCommand struct {
 type ActionHttp struct {
 	Url                    string                     `bson:"url" json:"url"`
 	Method                 string                     `bson:"method" json:"method"`
-	Body                   string                     `bson:"body" json:"body"`
+	Body                   map[string]string          `bson:"body" json:"body"`
 	HttpValueNameResponse  string                     `bson:"http_value_name_response" json:"http_value_name_response"`
 	CheckLLMResponsePrompt string                     `bson:"check_llm_response_prompt" json:"check_llm_response_prompt"`
 	FormatHttpResponse     []ActionFormatHttpResponse `bson:"format_http_response" json:"format_http_response"`
