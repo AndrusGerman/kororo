@@ -9,6 +9,7 @@ import (
 	"kororo/internal/core/domain/models"
 	"kororo/internal/core/domain/types"
 	"kororo/internal/core/ports"
+	"log"
 	"net/http"
 	"os/exec"
 	"strings"
@@ -58,6 +59,8 @@ func (s *actionService) processHttp(_ context.Context, action *models.Action, ac
 	}
 
 	if method == "POST" {
+		action.Http.Body = replacer.Replace(action.Http.Body)
+		log.Println("Body: ", action.Http.Body)
 		respHttp, err = http.Post(url, "application/json", strings.NewReader(action.Http.Body))
 	}
 
@@ -72,20 +75,34 @@ func (s *actionService) processHttp(_ context.Context, action *models.Action, ac
 		return nil, err
 	}
 
+	var mapResponse = make(map[string]interface{})
+	json.Unmarshal(body, &mapResponse)
+
+	log.Println("MapResponse: ", mapResponse)
+
 	if action.Http.CheckLLMResponsePrompt != "" {
 
 	}
 
+	var actionResponseFields []*models.ActionsResponseFields
+	actionResponseFields = append(actionResponseFields, &models.ActionsResponseFields{
+		Name:  action.Http.HttpValueNameResponse,
+		Value: string(body),
+	})
+
+	for _, formatHttpResponse := range action.Http.FormatHttpResponse {
+		actionResponseFields = append(actionResponseFields, &models.ActionsResponseFields{
+			Name:  formatHttpResponse.ValueName,
+			Value: mapResponse[formatHttpResponse.Src].(string),
+		})
+	}
+
 	var response = &models.ActionResponse{
-		ActionId: types.Id(action.Id),
-		Status:   "success",
-		Response: string(body),
-		ResponseFields: []*models.ActionsResponseFields{
-			{
-				Name:  action.Http.HttpValueNameResponse,
-				Value: string(body),
-			},
-		},
+
+		ActionId:       types.Id(action.Id),
+		Status:         "success",
+		Response:       string(body),
+		ResponseFields: actionResponseFields,
 	}
 
 	return response, nil
