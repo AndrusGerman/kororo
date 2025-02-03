@@ -10,6 +10,7 @@ import (
 	"kororo/internal/adapters/rest"
 	mongodb "kororo/internal/adapters/storage/mongo"
 	"kororo/internal/adapters/storage/mongo/repository"
+	"kororo/internal/core/ports"
 	"kororo/internal/core/services"
 	"os"
 	"strings"
@@ -19,7 +20,8 @@ func main() {
 
 	var err error
 	var config = config.NewConfig()
-
+	var restAdapter = rest.New()
+	var llmAdapter ports.LLMAdapter
 	var mongo *mongodb.Mongo
 
 	mongo, err = mongodb.NewMongo(config)
@@ -27,19 +29,12 @@ func main() {
 		panic(err)
 	}
 
-	var restAdapter = rest.New()
-
-	llmAdapter, err := gemini.New(restAdapter, config)
+	llmAdapter, err = gemini.New(restAdapter, config)
 	if err != nil {
 		panic(err)
 	}
 
-	deepseek.New(restAdapter, config)
-
-	//var a, b = llmAdapter.ProcessSystemMessage("Saluda a mi amigo", "hola")
-	//log.Println("llmAdapter: ", a, b)
-	//
-	//return
+	llmAdapter = deepseek.New(restAdapter, config)
 
 	// logs
 	var logger = services.NewLogService(config)
@@ -51,7 +46,7 @@ func main() {
 
 	// action
 	var actionRepository = repository.NewActionRepository(mongo)
-	var actionService = services.NewActionService(actionRepository, llmAdapter)
+	var actionService = services.NewActionService(actionRepository, llmAdapter, logger)
 
 	// field detector
 	var fieldDetectorService = services.NewFieldDetectorService(llmAdapter)

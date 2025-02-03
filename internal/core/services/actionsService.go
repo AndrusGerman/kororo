@@ -15,13 +15,14 @@ import (
 	"strings"
 )
 
-func NewActionService(actionRepository ports.ActionRepository, llmAdapter ports.LLMAdapter) ports.ActionService {
-	return &actionService{actionRepository: actionRepository, llmAdapter: llmAdapter}
+func NewActionService(actionRepository ports.ActionRepository, llmAdapter ports.LLMAdapter, logger ports.LogService) ports.ActionService {
+	return &actionService{actionRepository: actionRepository, llmAdapter: llmAdapter, logger: logger}
 }
 
 type actionService struct {
 	actionRepository ports.ActionRepository
 	llmAdapter       ports.LLMAdapter
+	logger           ports.LogService
 }
 
 func (s *actionService) GetAction(ctx context.Context, id types.Id) (*models.Action, error) {
@@ -54,6 +55,7 @@ func (s *actionService) processHttp(_ context.Context, action *models.Action, ac
 	var respHttp *http.Response
 	var method = strings.ToUpper(action.Http.Method)
 	var url = replacer.Replace(action.Http.Url)
+	var jsonBody []byte
 	if method == "GET" {
 		respHttp, err = http.Get(url)
 	}
@@ -64,7 +66,7 @@ func (s *actionService) processHttp(_ context.Context, action *models.Action, ac
 			action.Http.Body[index] = replacer.Replace(action.Http.Body[index])
 		}
 
-		jsonBody, err := json.Marshal(action.Http.Body)
+		jsonBody, err = json.Marshal(action.Http.Body)
 		if err != nil {
 			return nil, err
 		}
@@ -100,6 +102,11 @@ func (s *actionService) processHttp(_ context.Context, action *models.Action, ac
 	})
 
 	for _, formatHttpResponse := range action.Http.FormatHttpResponse {
+		if mapResponse[formatHttpResponse.Src] == nil {
+			s.logger.Error("ActionService.processHttp", fmt.Sprintf("Resp(%#v) Body(%s)  %s", mapResponse, jsonBody, url))
+			return nil, fmt.Errorf("Error http response %s is nil", formatHttpResponse.Src)
+		}
+
 		actionResponseFields = append(actionResponseFields, &models.ActionsResponseFields{
 			Name:  formatHttpResponse.ValueName,
 			Value: mapResponse[formatHttpResponse.Src].(string),
