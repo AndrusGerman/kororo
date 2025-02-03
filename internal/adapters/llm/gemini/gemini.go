@@ -16,6 +16,7 @@ type gemini struct {
 	rest   ports.RestAdapter
 	conf   *config.Config
 	client *genai.Client
+	model  string
 }
 
 func New(rest ports.RestAdapter, conf *config.Config) (ports.LLMAdapter, error) {
@@ -23,6 +24,9 @@ func New(rest ports.RestAdapter, conf *config.Config) (ports.LLMAdapter, error) 
 	var err error
 	llm.rest = rest
 	llm.conf = conf
+
+	llm.model = "gemini-1.5-flash"
+	llm.model = "gemini-2.0-flash-exp"
 
 	llm.client, err = genai.NewClient(context.Background(), option.WithAPIKey(conf.GEMINI_API_KEY()))
 
@@ -34,7 +38,7 @@ func (o *gemini) BasicQuest(text string) (string, error) {
 }
 
 func (o *gemini) ProcessSystemMessage(systemMessage string, userMessage string) (string, error) {
-	model := o.client.GenerativeModel("gemini-1.5-flash")
+	model := o.client.GenerativeModel(o.model)
 	return newGeminiSystemRequest(model, systemMessage, userMessage)
 }
 
@@ -59,29 +63,23 @@ func (o *gemini) newMessages(base []*models.Message) []*message {
 	return messages
 }
 
-func (o *gemini) Quest(base []*models.Message, text string) (*models.Message, error) {
+func (o *gemini) Quest(base []*models.Message) (*models.Message, error) {
 	var messages = o.newMessages(base)
 
-	var m = newMessage("user", strings.TrimSpace(text))
-	messages = append(messages, m)
-
-	model := o.client.GenerativeModel("gemini-1.5-flash")
+	model := o.client.GenerativeModel(o.model)
 
 	var response, err = newGeminiRequest(model, messages)
 
 	return models.NewMessage(strings.TrimSpace(response), models.AssistantRoleID), err
 }
 
-func (o *gemini) QuestParts(base []*models.Message, text string, partsSize int) (<-chan *models.Message, error) {
+func (o *gemini) QuestParts(base []*models.Message, partsSize int) (<-chan *models.Message, error) {
 	var messages = o.newMessages(base)
 	//var response *messageResponse
 	//var messageResponseStream <-chan *messageResponse
 	var messageStream = make(chan *models.Message)
 
-	var m = newMessage("user", strings.TrimSpace(text))
-	messages = append(messages, m)
-
-	model := o.client.GenerativeModel("gemini-1.5-flash")
+	model := o.client.GenerativeModel(o.model)
 	var response, err = newGeminiRequest(model, messages)
 	if err != nil {
 		return nil, err

@@ -19,3 +19,15 @@ func NewMessage(content string, roleId RoleID) *Message {
 		Content: content,
 	}
 }
+
+func NewMessageFromUser(content string) *Message {
+	return NewMessage(content, UserRoleID)
+}
+
+func NewMessageFromAssistant(content string) *Message {
+	return NewMessage(content, AssistantRoleID)
+}
+
+func NewMessageFromSystem(content string) *Message {
+	return NewMessage(content, SystemRoleID)
+}

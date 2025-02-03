@@ -11,13 +11,14 @@ import (
 	"github.com/AndrusGerman/go-criteria"
 )
 
-func NewIntentionService(intentionRepository ports.IntentionRepository, llmAdapter ports.LLMAdapter) ports.IntentionService {
-	return &intentionService{intentionRepository: intentionRepository, llmAdapter: llmAdapter}
+func NewIntentionService(intentionRepository ports.IntentionRepository, targetDectector ports.TargetDectector, llmAdapter ports.LLMAdapter) ports.IntentionService {
+	return &intentionService{intentionRepository: intentionRepository, targetDectector: targetDectector, llmAdapter: llmAdapter}
 }
 
 type intentionService struct {
 	intentionRepository ports.IntentionRepository
 	llmAdapter          ports.LLMAdapter
+	targetDectector     ports.TargetDectector
 }
 
 func (s *intentionService) Detect(ctx context.Context, text string) (*models.Intention, error) {
@@ -44,6 +45,7 @@ func (s *intentionService) Detect(ctx context.Context, text string) (*models.Int
 
 	var systemMessage = `Eres un asistente de IA que detecta la intención de un usuario y responde con el índice de la intención
 	que corresponde al mensaje del usuario. Si el usuario dice algo que no tiene que ver con la intención, responde con -1. Las intenciones son
+	El usuario puede enviar mensajes con comillas dobles o simples, el contenido de las comillas no debe ser tomado en cuenta para la detección de la intención.
 
 	Ejemplos de respuestas validas:
 	Mensaje: Quiero saludar a alguien
@@ -54,6 +56,12 @@ func (s *intentionService) Detect(ctx context.Context, text string) (*models.Int
 	Intenciones: [{"description": "Saludar a mi amigo", "intent_index": 0}, {"description": "Abrir una cuenta bancaria", "intent_index": 1}]
 	Respuesta: 1
 
+
+	Mensaje: Saluda a mi amigo, dile que 'abra una cuenta bancaria'
+	Intenciones: [{"description": "Saludar a mi amigo", "intent_index": 0}, {"description": "Abrir una cuenta bancaria", "intent_index": 1}]
+	Respuesta: 0
+	
+
 	Mensaje: Quiero vender una casa
 	Intenciones: [{"description": "Saludar a mi amigo", "intent_index": 0}, {"description": "Abrir una cuenta bancaria", "intent_index": 1}]
 	Respuesta: -1
@@ -61,7 +69,14 @@ func (s *intentionService) Detect(ctx context.Context, text string) (*models.Int
 
 	Tus respuestas deben ser solo el índice de la intención, no debes agregar ningún otro texto.
 	las siguientes: ` + string(jsonString)
-	response, err := s.llmAdapter.ProcessSystemMessage(systemMessage, text)
+
+	target, err := s.targetDectector.Detect(ctx, text)
+	if err != nil {
+		return nil, err
+	}
+
+	response, err := s.llmAdapter.ProcessSystemMessage(systemMessage, target)
+
 	if err != nil {
 		return nil, err
 	}
