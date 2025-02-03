@@ -5,6 +5,6 @@ import (
 	"kororo/internal/core/ports"
 )
 
-func New(rest ports.RestAdapter) ports.LLMAdapter {
-	return openai.New(rest, "mistral:latest", "", "http://localhost:11434/api/chat")
+func New() ports.LLMAdapter {
+	return openai.New("gemma2:27b-instruct-q4_K_S", "", "http://localhost:11434/v1/v1")
 }

@@ -13,16 +13,14 @@ import (
 )
 
 type gemini struct {
-	rest   ports.RestAdapter
 	conf   *config.Config
 	client *genai.Client
 	model  string
 }
 
-func New(rest ports.RestAdapter, conf *config.Config) (ports.LLMAdapter, error) {
+func New(conf *config.Config) (ports.LLMAdapter, error) {
 	var llm = new(gemini)
 	var err error
-	llm.rest = rest
 	llm.conf = conf
 
 	llm.model = "gemini-1.5-flash"

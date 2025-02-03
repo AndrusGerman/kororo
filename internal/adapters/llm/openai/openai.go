@@ -21,7 +21,7 @@ type ollama struct {
 	client *openai.Client
 }
 
-func New(rest ports.RestAdapter, model string, apiKey string, url string) ports.LLMAdapter {
+func New(model string, apiKey string, url string) ports.LLMAdapter {
 	var llm = new(ollama)
 	llm.mt = new(sync.Mutex)
 	llm.model = model
@@ -32,11 +32,6 @@ func New(rest ports.RestAdapter, model string, apiKey string, url string) ports.
 		openaioption.WithBaseURL(url),
 		openaioption.WithAPIKey(apiKey),
 	)
-
-	//log.Println("Key: ", llm.apiKey)
-
-	//log.Println("Client: ", llm.url)
-
 	return llm
 
 }

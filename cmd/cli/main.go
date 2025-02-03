@@ -7,7 +7,7 @@ import (
 	"kororo/internal/adapters/config"
 	"kororo/internal/adapters/llm/deepseek"
 	"kororo/internal/adapters/llm/gemini"
-	"kororo/internal/adapters/rest"
+	"kororo/internal/adapters/llm/ollama"
 	mongodb "kororo/internal/adapters/storage/mongo"
 	"kororo/internal/adapters/storage/mongo/repository"
 	"kororo/internal/core/ports"
@@ -20,7 +20,6 @@ func main() {
 
 	var err error
 	var config = config.NewConfig()
-	var restAdapter = rest.New()
 	var llmAdapter ports.LLMAdapter
 	var mongo *mongodb.Mongo
 
@@ -29,12 +28,13 @@ func main() {
 		panic(err)
 	}
 
-	llmAdapter, err = gemini.New(restAdapter, config)
+	llmAdapter, err = gemini.New(config)
 	if err != nil {
 		panic(err)
 	}
 
-	llmAdapter = deepseek.New(restAdapter, config)
+	llmAdapter = deepseek.New(config)
+	llmAdapter = ollama.New()
 
 	// logs
 	var logger = services.NewLogService(config)
