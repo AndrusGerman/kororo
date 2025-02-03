@@ -13,6 +13,7 @@ type IntentionProccess struct {
 	IntentionService     ports.IntentionService
 	FieldDetectorService ports.FieldDetectorService
 	ActionService        ports.ActionService
+	logger               ports.LogService
 }
 
 func (i *IntentionProccess) Process(ctx context.Context, text string) (string, error) {
@@ -25,6 +26,8 @@ func (i *IntentionProccess) Process(ctx context.Context, text string) (string, e
 	for _, field := range intention.Fields {
 		fields = append(fields, field.Description)
 	}
+
+	i.logger.Info("IntentionProccess.Process", intention.Description)
 
 	//fmt.Printf("\n--La intencion es %s, los campos requeridos son [%s]\n", intention.Description, strings.Join(fields, ", "))
 
@@ -75,13 +78,18 @@ func (i *IntentionProccess) Process(ctx context.Context, text string) (string, e
 		return "Error interno: al procesar la accion de respuesta: " + err.Error(), nil
 	}
 
+	if responseActionResponse.Response == "" {
+		return "Completado", nil
+	}
+
 	return responseActionResponse.Response, nil
 }
 
-func NewIntentionProccess(intentionService ports.IntentionService, fieldDetectorService ports.FieldDetectorService, actionService ports.ActionService) ports.IntentionProccessService {
+func NewIntentionProccess(intentionService ports.IntentionService, fieldDetectorService ports.FieldDetectorService, actionService ports.ActionService, logger ports.LogService) ports.IntentionProccessService {
 	return &IntentionProccess{
 		IntentionService:     intentionService,
 		FieldDetectorService: fieldDetectorService,
 		ActionService:        actionService,
+		logger:               logger,
 	}
 }

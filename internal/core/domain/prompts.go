@@ -21,7 +21,7 @@ const (
 	Usuario: {"fromUser": "Obten mis contactos y el primero que comience con j enviale un te quiero"}
 	IA: {"toSystem": "obtener contactos"}
 	Usuario: {"fromSystem": "Tus contactos son: Juan, Maria, Pedro, Jose, Luis"}	
-	IA: {"toSystem": "enviar un mensaje a 'Juan', 'te quiero a juan'"}
+	IA: {"toSystem": "enviar un mensaje a 'Juan', 'te quiero juan'"}
 	Usuario: {"fromSystem": "Mensaje enviado a Juan"}
 	IA: {"toUser": "Mensaje enviado a Juan correctamente","finish":true}
 

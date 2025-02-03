@@ -41,6 +41,9 @@ func main() {
 	//
 	//return
 
+	// logs
+	var logger = services.NewLogService(config)
+
 	// intention
 	var intentionRepository = repository.NewIntentionRepository(mongo)
 	var targetDectector = services.NewTargetDectector(llmAdapter)
@@ -53,10 +56,11 @@ func main() {
 	// field detector
 	var fieldDetectorService = services.NewFieldDetectorService(llmAdapter)
 
-	var intentionProccessService = services.NewIntentionProccess(intentionService, fieldDetectorService, actionService)
-	var multiIntentionProccessService = services.NewMultiIntentionProcessService(intentionProccessService, llmAdapter)
+	// intention proccess
+	var intentionProccessService = services.NewIntentionProccess(intentionService, fieldDetectorService, actionService, logger)
+	var multiIntentionProccessService = services.NewMultiIntentionProcessService(intentionProccessService, llmAdapter, logger)
 
-	// Intenciones:
+	// Lector de prompt:
 	var reader = bufio.NewReader(os.Stdin)
 
 	for {
