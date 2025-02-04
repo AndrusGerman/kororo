@@ -46,6 +46,10 @@ func (c *Config) HUGGINGFACE_API_KEY() string {
 	return c.getValue("HUGGINGFACE_API_KEY", "")
 }
 
+func (c *Config) OPENROUTER_API_KEY() string {
+	return c.getValue("OPENROUTER_API_KEY", "")
+}
+
 func (c *Config) getValue(envName string, defaultValue string) string {
 	if os.Getenv(envName) != "" {
 

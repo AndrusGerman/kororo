@@ -6,8 +6,7 @@ import (
 	"fmt"
 	"kororo/internal/adapters/config"
 	"kororo/internal/adapters/llm/gemini"
-	"kororo/internal/adapters/llm/huggingface"
-	"kororo/internal/adapters/rest"
+	"kororo/internal/adapters/llm/openai"
 	mongodb "kororo/internal/adapters/storage/mongo"
 	"kororo/internal/adapters/storage/mongo/repository"
 	"kororo/internal/core/ports"
@@ -22,7 +21,7 @@ func main() {
 	var config = config.NewConfig()
 	var llmAdapter ports.LLMAdapter
 	var mongo *mongodb.Mongo
-	var rest = rest.New()
+	//var rest = rest.New()
 
 	mongo, err = mongodb.NewMongo(config)
 	if err != nil {
@@ -33,8 +32,9 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	llmAdapter = openai.New("deepseek/deepseek-r1:free", config.OPENROUTER_API_KEY(), "https://openrouter.ai/api/v1/v1")
 
-	llmAdapter = huggingface.New(rest, config, "meta-llama/Llama-3.3-70B-Instruct")
+	//llmAdapter = huggingface.New(rest, config, "meta-llama/Llama-3.3-70B-Instruct")
 
 	// logs
 	var logger = services.NewLogService(config)
