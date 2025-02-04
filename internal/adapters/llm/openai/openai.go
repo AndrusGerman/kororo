@@ -86,33 +86,6 @@ func (o *ollama) Quest(base []*models.Message) (*models.Message, error) {
 }
 
 func (o *ollama) QuestParts(base []*models.Message, partsSize int) (<-chan *models.Message, error) {
-	//var messages = o.newMessages(base)
-	//var response *messageResponse
-	//var messageResponseStream <-chan *messageResponse
 	var messageStream = make(chan *models.Message)
-	var err error
-
-	//var request = newOllamaRequest(o.model, messages, true)
-
 	return messageStream, nil
-
-	//if messageResponseStream, err = o.newRequestStream(nil); err != nil {
-	//	return nil, err
-	//}
-	//
-	//go func() {
-	//	var text string
-	//	for messageResponse := range messageResponseStream {
-	//		text += messageResponse.Message.Content
-	//
-	//		if len(text) > partsSize || messageResponse.Done {
-	//			messageStream <- models.NewMessage(strings.TrimSpace(text), models.AssistantRoleID)
-	//			text = ""
-	//		}
-	//	}
-	//
-	//	close(messageStream)
-	//}()
-
-	return messageStream, err
 }

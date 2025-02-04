@@ -34,7 +34,7 @@ func main() {
 		panic(err)
 	}
 
-	llmAdapter = huggingface.New(rest, config, "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B")
+	llmAdapter = huggingface.New(rest, config, "meta-llama/Llama-3.3-70B-Instruct")
 
 	// logs
 	var logger = services.NewLogService(config)
