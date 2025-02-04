@@ -42,8 +42,8 @@ func (c *Config) GEMINI_API_KEY() string {
 	return c.getValue("GEMINI_API_KEY", "")
 }
 
-func (c *Config) DEEPSEEK_API_KEY() string {
-	return c.getValue("DEEPSEEK_API_KEY", "")
+func (c *Config) HUGGINGFACE_API_KEY() string {
+	return c.getValue("HUGGINGFACE_API_KEY", "")
 }
 
 func (c *Config) getValue(envName string, defaultValue string) string {

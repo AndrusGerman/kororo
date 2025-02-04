@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"io"
+	"log"
 	"net/http"
 
 	"kororo/internal/core/ports"
@@ -36,7 +38,15 @@ func (r *rest) Post(url string, headers map[string]string, body any, out any) er
 		return err
 	}
 
-	return json.NewDecoder(resp.Body).Decode(out)
+	bodyResp, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	log.Println(string(bodyResp))
+
+	return json.Unmarshal(bodyResp, out)
+
 }
 
 func (r *rest) Stream(url string, headers map[string]string, body any) (<-chan ports.StreamRest, error) {

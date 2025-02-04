@@ -72,22 +72,6 @@ func (o *gemini) Quest(base []*models.Message) (*models.Message, error) {
 }
 
 func (o *gemini) QuestParts(base []*models.Message, partsSize int) (<-chan *models.Message, error) {
-	var messages = o.newMessages(base)
-	//var response *messageResponse
-	//var messageResponseStream <-chan *messageResponse
 	var messageStream = make(chan *models.Message)
-
-	model := o.client.GenerativeModel(o.model)
-	var response, err = newGeminiRequest(model, messages)
-	if err != nil {
-		return nil, err
-	}
-
-	go func() {
-
-		messageStream <- models.NewMessage(response, models.AssistantRoleID)
-		close(messageStream)
-	}()
-
-	return messageStream, err
+	return messageStream, nil
 }

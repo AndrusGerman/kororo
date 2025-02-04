@@ -5,9 +5,9 @@ import (
 	"context"
 	"fmt"
 	"kororo/internal/adapters/config"
-	"kororo/internal/adapters/llm/deepseek"
 	"kororo/internal/adapters/llm/gemini"
-	"kororo/internal/adapters/llm/ollama"
+	"kororo/internal/adapters/llm/huggingface"
+	"kororo/internal/adapters/rest"
 	mongodb "kororo/internal/adapters/storage/mongo"
 	"kororo/internal/adapters/storage/mongo/repository"
 	"kororo/internal/core/ports"
@@ -22,6 +22,7 @@ func main() {
 	var config = config.NewConfig()
 	var llmAdapter ports.LLMAdapter
 	var mongo *mongodb.Mongo
+	var rest = rest.New()
 
 	mongo, err = mongodb.NewMongo(config)
 	if err != nil {
@@ -33,8 +34,7 @@ func main() {
 		panic(err)
 	}
 
-	llmAdapter = deepseek.New(config)
-	llmAdapter = ollama.New()
+	llmAdapter = huggingface.New(rest, config, "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B")
 
 	// logs
 	var logger = services.NewLogService(config)
