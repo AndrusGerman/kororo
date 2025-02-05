@@ -3,7 +3,7 @@ package models
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
+	"kororo/internal/core/domain"
 )
 
 type MultiIntentionInput struct {
@@ -35,7 +35,7 @@ func (m *MultiIntentionInput) String() string {
 func NewMultiIntentionInputFromString(text string) (*MultiIntentionInput, error) {
 	var input = new(MultiIntentionInput)
 
-	err := json.Unmarshal([]byte(jsonClear(text)), input)
+	err := json.Unmarshal([]byte(domain.MustJSONClear(text)), input)
 
 	if err != nil {
 		return nil, fmt.Errorf("error al parsear el mensaje: %w %s", err, text)
@@ -43,10 +43,4 @@ func NewMultiIntentionInputFromString(text string) (*MultiIntentionInput, error)
 
 	return input, err
 
-}
-
-func jsonClear(text string) string {
-	text = strings.Replace(text, "```json", "", -1)
-	text = strings.Replace(text, "```", "", -1)
-	return text
 }

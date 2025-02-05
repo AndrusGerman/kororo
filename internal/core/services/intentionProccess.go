@@ -17,6 +17,8 @@ type IntentionProccess struct {
 }
 
 func (i *IntentionProccess) Process(ctx context.Context, text string) (string, error) {
+	var llmError = new(models.LLMError)
+
 	intention, err := i.IntentionService.Detect(context.TODO(), text)
 	if err != nil {
 		return "", err
@@ -29,13 +31,10 @@ func (i *IntentionProccess) Process(ctx context.Context, text string) (string, e
 
 	i.logger.Info("IntentionProccess.Process", intention.Description)
 
-	//fmt.Printf("\n--La intencion es %s, los campos requeridos son [%s]\n", intention.Description, strings.Join(fields, ", "))
-
 	fieldsValue, err := i.FieldDetectorService.DetectFields(intention, text)
 
 	if err != nil {
 		if errors.Is(err, domain.ErrFieldsRequired) {
-			var llmError = new(models.LLMError)
 			errors.As(err, &llmError)
 			return "Error al detectar los campos requeridos " + llmError.UserMessage, nil
 		}
@@ -46,19 +45,13 @@ func (i *IntentionProccess) Process(ctx context.Context, text string) (string, e
 		return "", err
 	}
 
-	//for _, fieldValue := range fieldsValue {
-	//	fmt.Printf("El campo '%s' tiene el valor '%s'\n", fieldValue.Field.Description, fieldValue.Value)
-	//}
-
 	var actionPipelineContext = models.NewActionPipelineContext(fieldsValue, text)
 
 	for _, actionId := range intention.Actions {
 		action, err := i.ActionService.GetAction(context.TODO(), types.Id(actionId))
 		if err != nil {
 			return "Error interno: al obtener la accion: " + err.Error(), nil
-
 		}
-		//fmt.Println("---Procesando la accion: ", action.Description)
 
 		actionResponse, err := i.ActionService.ProcessAction(context.TODO(), action, actionPipelineContext)
 		if err != nil {

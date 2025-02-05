@@ -50,9 +50,12 @@ func (c *Config) OPENROUTER_API_KEY() string {
 	return c.getValue("OPENROUTER_API_KEY", "")
 }
 
+func (c *Config) APP_NAME() string {
+	return c.getValue("APP_NAME", "Kororo")
+}
+
 func (c *Config) getValue(envName string, defaultValue string) string {
 	if os.Getenv(envName) != "" {
-
 		return os.Getenv(envName)
 	}
 	return defaultValue

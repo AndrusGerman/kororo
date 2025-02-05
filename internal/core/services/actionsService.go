@@ -178,7 +178,7 @@ func (s *actionService) processLLMResponse(_ context.Context, action *models.Act
 	var systemPrompt = `Eres una asistente de IA encargada de responder exactamente con la acciones que te pide el usuario en su prompt`
 
 	if action.ResponseType == types.ActionResponseTypeJson {
-		systemPrompt += `Se te pedira procesar una serie de datos, donde las respuestas deben ser en formato JSON con el siguiente formato: 
+		systemPrompt += "\n" + `Se te pedira procesar una serie de datos, donde las respuestas deben ser en formato JSON con el siguiente formato: 
 		[{
 			"name": "nombre del campo",
 			"value": "valor del campo"
@@ -192,7 +192,7 @@ func (s *actionService) processLLMResponse(_ context.Context, action *models.Act
 		Mensaje: genera el campo 'fruta' con el valor de una fruta aleatoria
 		Respuesta: [{"name":"fruta", "value":"manzana"}]
 
-		Tus mensajes deben ser un formato json valido, sin incluir formato markdown o html.
+		Tus mensajes deben ser un formato json valido y no debe agregar ningun otro texto.
 		`
 	}
 
@@ -208,7 +208,14 @@ func (s *actionService) processLLMResponse(_ context.Context, action *models.Act
 	}
 
 	if action.ResponseType == types.ActionResponseTypeJson {
+		response, err = domain.JSONClear(response)
+		if err != nil {
+			s.logger.Error("ActionService.processLLMResponse", fmt.Sprintf("Error al limpiar el json: %s %s", err, response))
+			return nil, err
+		}
+
 		responseFields, err := s.processPipeline(context.TODO(), response)
+
 		if err != nil {
 			return nil, err
 		}
@@ -218,13 +225,8 @@ func (s *actionService) processLLMResponse(_ context.Context, action *models.Act
 	return actionResponse, nil
 }
 
-func (s *actionService) processPipeline(ctx context.Context, response string) ([]*models.ActionsResponseFields, error) {
+func (s *actionService) processPipeline(_ context.Context, response string) ([]*models.ActionsResponseFields, error) {
 	var responseFields []*models.ActionsResponseFields
-
-	response = strings.Replace(response, "```json", "", -1)
-	response = strings.Replace(response, "```", "", -1)
-
-	var err = json.Unmarshal([]byte(response), &responseFields)
-
+	var err = json.Unmarshal([]byte(domain.MustJSONClear(response)), &responseFields)
 	return responseFields, err
 }

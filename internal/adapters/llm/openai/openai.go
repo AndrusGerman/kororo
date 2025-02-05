@@ -21,17 +21,27 @@ type ollama struct {
 	client *openai.Client
 }
 
-func New(model string, apiKey string, url string) ports.LLMAdapter {
+func New(model string, apiKey string, url string, headers map[string]string, body map[string]interface{}) ports.LLMAdapter {
 	var llm = new(ollama)
 	llm.mt = new(sync.Mutex)
 	llm.model = model
 	llm.apiKey = apiKey
 	llm.url = url
 
-	llm.client = openai.NewClient(
+	var options = []openaioption.RequestOption{
 		openaioption.WithBaseURL(url),
 		openaioption.WithAPIKey(apiKey),
-	)
+	}
+
+	for k, v := range headers {
+		options = append(options, openaioption.WithHeaderAdd(k, v))
+	}
+
+	for k, v := range body {
+		options = append(options, openaioption.WithJSONSet(k, v))
+	}
+
+	llm.client = openai.NewClient(options...)
 	return llm
 
 }

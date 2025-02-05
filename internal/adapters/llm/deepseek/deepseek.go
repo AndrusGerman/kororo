@@ -7,6 +7,14 @@ import (
 )
 
 func New(config *config.Config) ports.LLMAdapter {
-	return openai.New("deepseek-ai/DeepSeek-V3", config.HUGGINGFACE_API_KEY(), "https://huggingface.co/api/inference-proxy/together/v1")
-
+	return openai.New("deepseek/deepseek-chat", config.OPENROUTER_API_KEY(), "https://openrouter.ai/api/v1/v1",
+		map[string]string{
+			"X-Title": config.APP_NAME(),
+		},
+		map[string]any{
+			"provider": map[string]any{
+				"sort": "throughput",
+			},
+		},
+	)
 }

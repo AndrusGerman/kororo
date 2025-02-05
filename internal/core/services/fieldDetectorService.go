@@ -60,7 +60,7 @@ func (s *FieldDetectorService) DetectFields(intention *models.Intention, text st
 	var systemMessage = `Eres una IA que detecta los campos requeridos de una intención de un usuario, solo respondes con JSON validos sin
 	etiquetas de formato markdown.
 	Te enviare una conversación entre un usuario y un asistente de IA y debes detectar los campos requeridos que están en la conversación.
-	La respuesta tiene que ser un JSON valido sin etiquetas markdown.
+	La respuesta tiene que ser un JSON valido.
 	Solo tienes dos maneras de responder:
 	1. Si falta algún campo requerido, debes responder con el campo requerido que faltan en un JSON con el siguiente formato:
 	{	
@@ -82,13 +82,6 @@ func (s *FieldDetectorService) DetectFields(intention *models.Intention, text st
 		"fields":[{"name":"username", "value":"julio"}]
 	}
 	
-	Esto es una respuesta invalida:
-	` + "```json" + `
-	{
-		"systemResponse":"",
-		"fields":[{"field":"username", "value":"julio"}]
-	}
-` + "```" + `
 
 
 	Esto es una respuesta valida: 
@@ -97,13 +90,6 @@ func (s *FieldDetectorService) DetectFields(intention *models.Intention, text st
 		"fields":[]
 	}
 	
-	Esto es una respuesta invalida:
-	` + "```json" + `
-	{
-		"systemResponse":"Falta el campo requerido 'nombre de usuario'",
-		"fields":[]
-	}
-` + "```" + `
 
 	Ejemplo con los siguientes datos:
 	[{"name":"edad", "description":"edad del usuario", "type":"number"}]
@@ -120,8 +106,7 @@ func (s *FieldDetectorService) DetectFields(intention *models.Intention, text st
 		return nil, err
 	}
 
-	response = strings.Replace(response, "```json", "", -1)
-	response = strings.Replace(response, "```", "", -1)
+	response = domain.MustJSONClear(response)
 
 	var iaResponse IAResponse
 	err = json.Unmarshal([]byte(response), &iaResponse)

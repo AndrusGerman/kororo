@@ -3,8 +3,8 @@ package services
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
+	"kororo/internal/core/domain"
 	"kororo/internal/core/domain/models"
 	"kororo/internal/core/ports"
 
@@ -43,52 +43,72 @@ func (s *intentionService) Detect(ctx context.Context, text string) (*models.Int
 		return nil, err
 	}
 
+	type ResponseJson struct {
+		UserMessage string `json:"user_message"`
+		IntentIndex int    `json:"intent_index"`
+	}
+
 	var systemMessage = `Eres un asistente de IA que detecta la intención de un usuario y responde con el índice de la intención
-	que corresponde al mensaje del usuario. Si el usuario dice algo que no tiene que ver con la intención, responde con -1. Las intenciones son
-	El usuario puede enviar mensajes con comillas dobles o simples, el contenido de las comillas no debe ser tomado en cuenta para la detección de la intención.
+
+	que corresponde al mensaje del usuario. Si el usuario dice algo que no tiene que ver con la intención, responde con -1. Las intenciones son.
+	Si el usuario escribe mas de una intencion, escribe el parametro "user_message" con el mensaje de usuario 
+	"solo puede mandar al sistema una intención a la vez, 'intencion1', 'intencion2' detectada" y "intent_index" con -1
 
 	Ejemplos de respuestas validas:
 	Mensaje: Quiero saludar a alguien
 	Intenciones: [{"description": "Saludar a mi amigo", "intent_index": 0}, {"description": "Abrir una cuenta bancaria", "intent_index": 1}]
-	Respuesta: 0
+	Respuesta: {"intent_index": 0}
 
 	Mensaje: Quiero abrir una cuenta bancaria
 	Intenciones: [{"description": "Saludar a mi amigo", "intent_index": 0}, {"description": "Abrir una cuenta bancaria", "intent_index": 1}]
-	Respuesta: 1
+	Respuesta: {"intent_index": 1}
 
 
-	Mensaje: Saluda a mi amigo, dile que 'abra una cuenta bancaria'
+	Mensaje: Saluda a mi amigo
 	Intenciones: [{"description": "Saludar a mi amigo", "intent_index": 0}, {"description": "Abrir una cuenta bancaria", "intent_index": 1}]
-	Respuesta: 0
+	Respuesta: {"intent_index": 0}
 	
+	Mensaje: Saluda a mi amigo y abrir una cuenta bancaria
+	Intenciones: [{"description": "Saludar a mi amigo", "intent_index": 0}, {"description": "Abrir una cuenta bancaria", "intent_index": 1}]
+	Respuesta: {"user_message": "solo puede mandar al sistema una intención a la vez, 'Saludar a mi amigo', 'Abrir una cuenta bancaria' detectada", "intent_index": -1}
 
 	Mensaje: Quiero vender una casa
 	Intenciones: [{"description": "Saludar a mi amigo", "intent_index": 0}, {"description": "Abrir una cuenta bancaria", "intent_index": 1}]
-	Respuesta: -1
+	Respuesta: {"intent_index": -1}
 
 
-	Tus respuestas deben ser solo el índice de la intención, no debes agregar ningún otro texto.
-	las siguientes: ` + string(jsonString)
+	Tus respuestas deben ser solo el json valido, {
+		"user_message": "mensaje de usuario",
+		"intent_index": "índice de la intención"
+	}
+	y solo puedes mandar uno de los parametros, no ambos.
+	
+	Estas son las intenciones: ` + string(jsonString)
 
 	target, err := s.targetDectector.Detect(ctx, text)
+
 	if err != nil {
 		return nil, err
 	}
 
 	response, err := s.llmAdapter.ProcessSystemMessage(systemMessage, target)
-
 	if err != nil {
 		return nil, err
 	}
 
-	var intentIndex int
-	if _, err := fmt.Sscanf(response, "%d", &intentIndex); err != nil {
+	response = domain.MustJSONClear(response)
+
+	var responseJson ResponseJson
+	if err := json.Unmarshal([]byte(response), &responseJson); err != nil {
 		return nil, err
 	}
 
-	if intentIndex == -1 {
-		return nil, errors.New("no se pudo detectar la intención")
+	if responseJson.IntentIndex == -1 {
+		if responseJson.UserMessage != "" {
+			return nil, fmt.Errorf("%w: %w", domain.ErrMultipleIntentionSend, models.NewLLMError(responseJson.UserMessage, responseJson.UserMessage))
+		}
+		return nil, domain.ErrIntentionNotFound
 	}
 
-	return intentions[intentIndex], nil
+	return intentions[responseJson.IntentIndex], nil
 }

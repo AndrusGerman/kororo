@@ -26,6 +26,8 @@ func (m *MultiIntentionProcessService) Process(ctx context.Context, text string)
 	messages = append(messages, userMessage)
 
 	for {
+		var llmError = new(models.LLMError)
+
 		// preguntar al sistema que quiere hacer
 		systemResponse, err := m.Quest(ctx, messages)
 		if err != nil {
@@ -47,14 +49,30 @@ func (m *MultiIntentionProcessService) Process(ctx context.Context, text string)
 		m.logger.Info("systemResponse.ToSystem", systemResponse.ToSystem)
 		responseIntention, err := m.IntentionProccessService.Process(ctx, systemResponse.ToSystem)
 		if err != nil {
+			if errors.Is(err, domain.ErrIntentionNotFound) {
+				m.logger.Info("IntentionProccessService.Err", "Esta accion no la puede realizar el sistema")
+				messages = append(messages, m.NewMessageUserFromSystem("Esta accion no la puede realizar el sistema"))
+				continue
+			}
+
+			if errors.Is(err, domain.ErrMultipleIntentionSend) {
+				errors.As(err, &llmError)
+				m.logger.Info("IntentionProccessService.Err", llmError.InternalMessage)
+				messages = append(messages, m.NewMessageUserFromSystem(llmError.UserMessage))
+				continue
+			}
+
 			return "", err
 		}
 
 		m.logger.Info("IntentionProccessService.ProcessResponse", responseIntention)
-		messages = append(messages, models.NewMessageFromUser((&models.MultiIntentionInput{FromSystem: responseIntention}).Json()))
-
+		messages = append(messages, m.NewMessageUserFromSystem(responseIntention))
 	}
 
+}
+
+func (m *MultiIntentionProcessService) NewMessageUserFromSystem(message string) *models.Message {
+	return models.NewMessageFromUser((&models.MultiIntentionInput{FromSystem: message}).Json())
 }
 
 func (m *MultiIntentionProcessService) Quest(ctx context.Context, messages []*models.Message) (*models.MultiIntentionInput, error) {
