@@ -1,4 +1,4 @@
-package deepseek
+package openrouter
 
 import (
 	"kororo/internal/adapters/config"
@@ -6,8 +6,8 @@ import (
 	"kororo/internal/core/ports"
 )
 
-func New(config *config.Config) ports.LLMAdapter {
-	return openai.New("deepseek/deepseek-chat", config.OPENROUTER_API_KEY(), "https://openrouter.ai/api/v1/v1",
+func New(config *config.Config, model string) ports.LLMAdapter {
+	return openai.New(model, config.OPENROUTER_API_KEY(), "https://openrouter.ai/api/v1/v1",
 		map[string]string{
 			"X-Title": config.APP_NAME(),
 		},

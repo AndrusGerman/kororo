@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"fmt"
 	"regexp"
 	"sync"
 )
@@ -14,28 +15,28 @@ var jsonClearCompileInstance = new(jsonClearCompile)
 
 func (j *jsonClearCompile) init() {
 	j.Do(func() {
-		j.re = regexp.MustCompile(`((\\[|{)(.|\\s)*(}|\\]))`)
+		j.re = regexp.MustCompile(`({|\[)(\w|\W)*(}|\])`)
 	})
 }
 
-func (j *jsonClearCompile) Clear(s string) string {
+func (j *jsonClearCompile) Clear(s string) (string, error) {
 	j.init()
 	var result = j.re.FindStringSubmatch(s)
 	if result == nil {
-		return s
+		return "", fmt.Errorf("%w: %s not valid json", ErrClearJson, s)
 	}
+	return result[0], nil
 
-	return result[1]
 }
 
 func MustJSONClear(jsonString string) string {
-	return jsonClearCompileInstance.Clear(jsonString)
+	result, err := jsonClearCompileInstance.Clear(jsonString)
+	if err != nil {
+		return ""
+	}
+	return result
 }
 
 func JSONClear(jsonString string) (string, error) {
-	var result = jsonClearCompileInstance.Clear(jsonString)
-	if result == "" {
-		return "", ErrClearJson
-	}
-	return result, nil
+	return jsonClearCompileInstance.Clear(jsonString)
 }

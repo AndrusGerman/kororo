@@ -10,6 +10,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
 )
 
 type Mongo struct {
@@ -21,8 +22,8 @@ func (ctx *Mongo) Close() error {
 	return ctx.client.Disconnect(context.TODO())
 }
 
-func (ctx *Mongo) initConnection(uri string) error {
-	if ctx.client != nil {
+func (m *Mongo) initConnection(uri string) error {
+	if m.client != nil {
 		return nil
 	}
 
@@ -42,8 +43,11 @@ func (ctx *Mongo) initConnection(uri string) error {
 	if err != nil {
 		return err
 	}
-	ctx.client = client
-	return nil
+	m.client = client
+
+	var ctx, cancel = context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	return client.Ping(ctx, readpref.Primary())
 }
 
 func (ctx *Mongo) GetDB(database types.Database) *mongo.Database {

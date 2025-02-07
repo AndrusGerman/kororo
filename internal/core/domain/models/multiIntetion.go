@@ -38,7 +38,7 @@ func NewMultiIntentionInputFromString(text string) (*MultiIntentionInput, error)
 	err := json.Unmarshal([]byte(domain.MustJSONClear(text)), input)
 
 	if err != nil {
-		return nil, fmt.Errorf("error al parsear el mensaje: %w %s", err, text)
+		return nil, fmt.Errorf("error al parsear el mensaje: %w: '%s'", err, text)
 	}
 
 	return input, err

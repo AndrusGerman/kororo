@@ -11,11 +11,13 @@ import (
 
 type FieldDetectorService struct {
 	llmAdapter ports.LLMAdapter
+	logger     ports.LogService
 }
 
-func NewFieldDetectorService(llmAdapter ports.LLMAdapter) ports.FieldDetectorService {
+func NewFieldDetectorService(llmAdapter ports.LLMAdapter, logger ports.LogService) ports.FieldDetectorService {
 	return &FieldDetectorService{
 		llmAdapter: llmAdapter,
+		logger:     logger,
 	}
 }
 
@@ -106,7 +108,11 @@ func (s *FieldDetectorService) DetectFields(intention *models.Intention, text st
 		return nil, err
 	}
 
-	response = domain.MustJSONClear(response)
+	response, err = domain.JSONClear(response)
+	if err != nil {
+		s.logger.Error("FieldDetectorService.DetectFields.ErrJSONClear", response)
+		return nil, err
+	}
 
 	var iaResponse IAResponse
 	err = json.Unmarshal([]byte(response), &iaResponse)

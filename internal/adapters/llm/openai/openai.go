@@ -21,6 +21,10 @@ type ollama struct {
 	client *openai.Client
 }
 
+type RoleSystem struct {
+	System string
+}
+
 func New(model string, apiKey string, url string, headers map[string]string, body map[string]interface{}) ports.LLMAdapter {
 	var llm = new(ollama)
 	llm.mt = new(sync.Mutex)
@@ -51,7 +55,7 @@ func (o *ollama) ProcessSystemMessage(systemMessage string, userMessage string) 
 	messages = append(messages, openai.SystemMessage(systemMessage))
 	messages = append(messages, openai.UserMessage(userMessage))
 
-	var request = newRequest(o.model, messages, false)
+	var request = newRequest(o.model, messages)
 
 	chatCompletion, err := o.client.Chat.Completions.New(context.TODO(), request)
 	if err != nil {
@@ -76,6 +80,7 @@ func (o *ollama) newMessages(base []*models.Message) []openai.ChatCompletionMess
 
 		if base[i].RoleID == models.SystemRoleID {
 			messages[i] = openai.SystemMessage(base[i].Content)
+			//messages[i] = openai.AssistantMessage(base[i].Content)
 		}
 
 	}
@@ -85,7 +90,7 @@ func (o *ollama) newMessages(base []*models.Message) []openai.ChatCompletionMess
 func (o *ollama) Quest(base []*models.Message) (*models.Message, error) {
 	var messages = o.newMessages(base)
 
-	var request = newRequest(o.model, messages, false)
+	var request = newRequest(o.model, messages)
 
 	chatCompletion, err := o.client.Chat.Completions.New(context.TODO(), request)
 	if err != nil {
