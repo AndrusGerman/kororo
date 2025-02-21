@@ -17,7 +17,7 @@ type MultiIntentionProcessService struct {
 func (m *MultiIntentionProcessService) Process(ctx context.Context, text string) (string, error) {
 	var messages = make([]*models.Message, 0)
 	// system prompt:
-	messages = append(messages, models.NewMessageFromSystem(domain.MultiIntentionChatPrompt))
+	messages = append(messages, models.NewMessageFromSystem(domain.MultiIntentionPrompt))
 
 	// Agregar el mensaje del usuario
 	messages = append(messages, m.NewMessageUserFromUser(text))
