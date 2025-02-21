@@ -1,26 +1,30 @@
 package services
 
 import (
+	"bufio"
 	"context"
 	"errors"
+	"fmt"
 	"kororo/internal/core/domain"
 	"kororo/internal/core/domain/models"
 	"kororo/internal/core/ports"
+	"os"
+	"strings"
 )
 
-type MultiIntentionProcessService struct {
+type MultiIntentionChatProcessService struct {
 	IntentionProccessService ports.IntentionProccessService
 	llmAdapter               ports.LLMAdapter
 	logger                   ports.LogService
 }
 
-func (m *MultiIntentionProcessService) Process(ctx context.Context, text string) (string, error) {
+func (m *MultiIntentionChatProcessService) Process(ctx context.Context, initialMessage string) error {
 	var messages = make([]*models.Message, 0)
 	// system prompt:
-	messages = append(messages, models.NewMessageFromSystem(domain.MultiIntentionChatPrompt))
+	messages = append(messages, models.NewMessageFromSystem(domain.MultiIntentionPrompt))
 
 	// Agregar el mensaje del usuario
-	messages = append(messages, m.NewMessageUserFromUser(text))
+	messages = append(messages, m.NewMessageUserFromUser(initialMessage))
 
 	for {
 		var llmError = new(models.LLMError)
@@ -28,18 +32,20 @@ func (m *MultiIntentionProcessService) Process(ctx context.Context, text string)
 		// preguntar al sistema que quiere hacer
 		systemResponse, err := m.Quest(ctx, messages)
 		if err != nil {
-			return "", err
+			return err
 		}
 
 		messages = append(messages, models.NewMessageFromAssistant(systemResponse.Json()))
 
-		// el sistema quiere terminar
-		if systemResponse.Finish || systemResponse.ToUser != "" {
-			return systemResponse.ToUser, nil
+		// el sistema habla con el usuario
+		if systemResponse.ToUser != "" {
+			m.logger.Info("systemResponse.ToUser", systemResponse.ToUser)
+			messages = append(messages, m.NewMessageUserFromUser(m.getUserInput()))
+			continue
 		}
 
 		if systemResponse.ToSystem == "" {
-			return "", errors.New("systemResponse.ToSystem is empty")
+			return errors.New("systemResponse.ToSystem is empty")
 		}
 
 		// el sistema quiere hacer una accion
@@ -59,7 +65,7 @@ func (m *MultiIntentionProcessService) Process(ctx context.Context, text string)
 				continue
 			}
 
-			return "", err
+			return err
 		}
 
 		m.logger.Info("IntentionProccessService.ProcessResponse", responseIntention)
@@ -68,15 +74,15 @@ func (m *MultiIntentionProcessService) Process(ctx context.Context, text string)
 
 }
 
-func (m *MultiIntentionProcessService) NewMessageUserFromSystem(message string) *models.Message {
+func (m *MultiIntentionChatProcessService) NewMessageUserFromSystem(message string) *models.Message {
 	return models.NewMessageFromUser((&models.MultiIntentionInput{FromSystem: message}).Json())
 }
 
-func (m *MultiIntentionProcessService) NewMessageUserFromUser(message string) *models.Message {
+func (m *MultiIntentionChatProcessService) NewMessageUserFromUser(message string) *models.Message {
 	return models.NewMessageFromUser((&models.MultiIntentionInput{FromUser: message}).Json())
 }
 
-func (m *MultiIntentionProcessService) Quest(ctx context.Context, messages []*models.Message) (*models.MultiIntentionInput, error) {
+func (m *MultiIntentionChatProcessService) Quest(ctx context.Context, messages []*models.Message) (*models.MultiIntentionInput, error) {
 	respAssistant, err := m.llmAdapter.Quest(messages)
 	if err != nil {
 		return nil, err
@@ -85,8 +91,16 @@ func (m *MultiIntentionProcessService) Quest(ctx context.Context, messages []*mo
 	return models.NewMultiIntentionInputFromString(respAssistant.Content)
 }
 
-func NewMultiIntentionProcessService(intentionProccessService ports.IntentionProccessService, llmAdapter ports.LLMAdapter, logger ports.LogService) ports.MultiIntentionProccessService {
-	return &MultiIntentionProcessService{
+func (m *MultiIntentionChatProcessService) getUserInput() string {
+	var reader = bufio.NewReader(os.Stdin)
+	fmt.Print("Prompt: ")
+	text, _ := reader.ReadString('\n')
+	text = strings.TrimSpace(text)
+	return text
+}
+
+func NewMultiIntentionChatProcessService(intentionProccessService ports.IntentionProccessService, llmAdapter ports.LLMAdapter, logger ports.LogService) *MultiIntentionChatProcessService {
+	return &MultiIntentionChatProcessService{
 		IntentionProccessService: intentionProccessService,
 		llmAdapter:               llmAdapter,
 		logger:                   logger,

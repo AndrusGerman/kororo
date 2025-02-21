@@ -43,7 +43,35 @@ func (s *actionService) ProcessAction(ctx context.Context, action *models.Action
 		return s.processHttp(ctx, action, actionContext)
 	}
 
+	if action.ActionProccessType == types.ActionProccessTypeBasicFormat {
+		return s.processBasicFormat(ctx, action, actionContext)
+	}
+
 	return nil, domain.ErrActionTypeNotSupported
+}
+
+func (s *actionService) processBasicFormat(_ context.Context, action *models.Action, actionContext *models.ActionPipelineContext) (*models.ActionResponse, error) {
+
+	replacer, err := s.replacer(actionContext, action)
+	if err != nil {
+		return nil, err
+	}
+
+	var responseFormat = replacer.Replace(action.BasicFormat.Format)
+
+	var actionResponseFields []*models.ActionsResponseFields
+	actionResponseFields = append(actionResponseFields, &models.ActionsResponseFields{
+		Name:  action.BasicFormat.FormatValueName,
+		Value: responseFormat,
+	})
+	var response = &models.ActionResponse{
+		ActionId:       types.Id(action.Id),
+		Status:         "success",
+		Response:       responseFormat,
+		ResponseFields: actionResponseFields,
+	}
+
+	return response, nil
 }
 
 func (s *actionService) processHttp(_ context.Context, action *models.Action, actionContext *models.ActionPipelineContext) (*models.ActionResponse, error) {

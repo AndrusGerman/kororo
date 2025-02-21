@@ -27,8 +27,9 @@ func main() {
 		panic(err)
 	}
 
-	strongLLMAdapter = openrouter.New(config, "deepseek/deepseek-chat")
 	weakLLMAdapter = openrouter.New(config, "google/gemini-2.0-flash-001")
+	//strongLLMAdapter = openrouter.New(config, "deepseek/deepseek-chat")
+	strongLLMAdapter = weakLLMAdapter
 
 	// logs
 	var logger = services.NewLogService(config)

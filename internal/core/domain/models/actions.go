@@ -15,8 +15,9 @@ type Action struct {
 	ProcessLLMSystemPrompt string                   `bson:"process_llm_system_prompt" json:"process_llm_system_prompt"`
 	ResponseType           types.ActionResponseType `bson:"response_type" json:"response_type"`
 
-	Command *ActionCommand `bson:"command" json:"command"`
-	Http    *ActionHttp    `bson:"http" json:"http"`
+	Command     *ActionCommand     `bson:"command" json:"command"`
+	Http        *ActionHttp        `bson:"http" json:"http"`
+	BasicFormat *ActionBasicFormat `bson:"basic_format" json:"basic_format"`
 }
 
 type ActionCommand struct {
@@ -35,4 +36,9 @@ type ActionHttp struct {
 type ActionFormatHttpResponse struct {
 	Src       string `bson:"src" json:"src"`
 	ValueName string `bson:"value_name" json:"value_name"`
+}
+
+type ActionBasicFormat struct {
+	Format          string `bson:"format" json:"format"`
+	FormatValueName string `bson:"format_value_name" json:"format_value_name"`
 }
