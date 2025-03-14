@@ -1,10 +1,14 @@
 # Kororo AI
 
 Esto aun no esta del todo documentado, pero ya hace un monton de cosas.
-Es un agente AI. capaz de hacer practicamente cualquier cosa con una API.
-Actualmente con mi configuracion puede.
-Hacer tranferencias bancarias, enviar whatsapp, conectarse al banco leer y escribir archivo.
-Practicamente es jesucristo echo por mi jajajaja.
+Es un agente AI, capaz de hacer practicamente cualquier cosa con una API.
+Actualmente con mi configuracion puede:
+
+> Hacer tranferencias bancarias
+> enviar whatsapp
+> conectarse al banco
+> leer y escribir archivo.
+> Practicamente es jesucristo echo por mi jajajaja.
 
 # Demostracion:
 
